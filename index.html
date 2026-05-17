@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bukti Pembayaran Pertama Anda</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #F7F9FA; min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; user-select: none; }
+        
+        /* Header */
+        .header { background: #3B66A4; color: white; text-align: center; padding: 15px; font-size: 14px; position: relative; z-index: 10; }
+        .btn-back-top { position: absolute; left: 15px; color: white; text-decoration: none; font-weight: bold; cursor: pointer; }
+        
+        /* Content Form */
+        .content { flex: 1; padding: 16px; z-index: 10; }
+        
+        /* Grup Input */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; color: #555; margin-bottom: 8px; font-weight: 500; }
+        .form-label span { color: red; margin-right: 3px; font-weight: bold; }
+        
+        /* Input Box Umum */
+        .field-box { background: white; border: 1px solid #EAEAEA; border-radius: 8px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; position: relative; }
+        
+        /* Warna teks default saat masih kosong (Placeholder mode) */
+        .field-text { font-size: 15px; color: #BBB; }
+        /* Kelas tambahan via JS jika sudah terisi (Warna teks jadi hitam) */
+        .field-text.filled { color: #333; }
+        
+        .field-input { width: 100%; border: none; outline: none; font-size: 15px; color: #333; background: transparent; }
+        /* Placeholder untuk input text ID Pesanan */
+        .field-input::placeholder { color: #BBB; }
+        
+        /* Icon Grafis SVG */
+        .icon-svg { width: 18px; height: 18px; color: #999; fill: none; stroke: currentColor; stroke-width: 2; }
+        
+        /* Counter Teks ID Pesanan */
+        .counter-text { position: absolute; right: 16px; bottom: -20px; font-size: 11px; color: #AAA; }
+
+        /* Komponen Upload Gambar */
+        .upload-container { width: 110px; height: 110px; background: white; border: 1px dashed #DDD; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; }
+        .upload-container img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .upload-icon { width: 32px; height: 32px; color: #BBB; margin-bottom: 4px; }
+        
+        /* Footer Buttons */
+        .footer { padding: 16px; background: #F7F9FA; }
+        .btn-container { display: flex; gap: 12px; margin-bottom: 15px; }
+        
+        /* Base Button Style */
+        .btn { flex: 1; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 500; cursor: pointer; text-align: center; text-decoration: none; display: block; }
+        
+        /* Tombol Kembali (Putih) */
+        .btn-white { background: white; color: #555; border: 1px solid #EAEAEA; }
+        .btn-white:active { background: #F0F2F3; }
+        
+        /* Tombol Berikutnya (Biru) */
+        .btn-blue { background: #1A8CFF; color: white; }
+        .btn-blue:active { background: #0073E6; }
+        
+        .wm { text-align: center; font-size: 10px; color: #AAA; }
+
+        /* --- STYLES POPUP GULUNG (KALENDER & CHANNEL) --- */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 20; display: none; }
+        
+        .picker-popup { position: fixed; bottom: -400px; left: 0; width: 100%; background: white; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 30; transition: bottom 0.3s ease; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .picker-popup.active { bottom: 0; }
+        
+        /* Header Popup */
+        .picker-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid #F0F0F0; }
+        .picker-close { font-size: 20px; color: #999; cursor: pointer; font-weight: 300; }
+        .picker-confirm { font-size: 18px; color: #1A8CFF; cursor: pointer; font-weight: bold; }
+        
+        /* Area Konten Roda */
+        .picker-columns { display: flex; justify-content: space-around; padding: 20px 10px; height: 220px; position: relative; background: white; }
+        .picker-mask { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 100%; height: 40px; border-top: 1px solid #EEE; border-bottom: 1px solid #EEE; pointer-events: none; }
+        
+        .picker-col { flex: 1; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; text-align: center; -scrollbar-width: none; }
+        .picker-col::-webkit-scrollbar { display: none; }
+        
+        .picker-item { height: 40px; line-height: 40px; font-size: 16px; color: #333; scroll-snap-align: center; }
+        .picker-spacer { height: 90px; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div class="overlay" id="bgOverlay" onclick="tutupSemuaPicker()"></div>
+
+    <div class="header">
+        <!-- Panah atas kembali ke repo 4 -->
+        <span class="btn-back-top" onclick="kembaliLink()">&#10094;</span>
+        Bukti Pembayaran Pertama Anda
+    </div>
+
+    <div class="content">
+        
+        <div class="form-group">
+            <label class="form-label"><span>*</span> Tanggal Pemesanan</label>
+            <div class="field-box" onclick="bukaCalendarPicker()">
+                <span class="field-text" id="dateText">Silakan Pilih</span>
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><span>*</span> Channel Pesanan</label>
+            <div class="field-box" onclick="bukaChannelPicker()">
+                <span class="field-text" id="channelText">Silakan Pilih</span>
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+        </div>
+
+        <div class="form-group" style="position: relative; margin-bottom: 30px;">
+            <label class="form-label"><span>*</span> ID Pesanan</label>
+            <div class="field-box" style="cursor: text;">
+                <input type="text" class="field-input" id="idPesanan" placeholder="Silakan masukkan ID Pesanan" value="" oninput="updateCounter(this)">
+                <span class="counter-text" id="charCounter">0/200</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><span>*</span> Screenshot Bukti Pembayaran</label>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="previewImage(this)">
+            <div class="upload-container" onclick="pemicuUpload()">
+                <svg class="upload-icon" id="iconKamera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M6.5 21h11a2.5 2.5 0 002.5-2.5V8.5A2.5 2.5 0 0017.5 6h-1.3L15 4H9L7.8 6H6.5A2.5 2.5 0 004 8.5v10A2.5 2.5 0 006.5 21z" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="13" r="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <img id="imgPreview" alt="Pratinjau Bukti">
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <div class="btn-container">
+            <!-- Tombol Kembali Ke Repo 4 -->
+            <button type="button" class="btn btn-white" onclick="kembaliLink()">Kembali</button>
+            
+            <!-- Tombol Berikutnya Ke Repo 6 menggunakan tag <a> murni agar pasti berfungsi -->
+            <a href="https://csmobilelegendsgame.github.io/recovery-6/" class="btn btn-blue">Berikutnya</a>
+        </div>
+        <div class="wm">Powered by AIHELP.NET</div>
+    </div>
+
+
+    <div class="picker-popup" id="calendarPicker">
+        <div class="picker-header">
+            <span class="picker-close" onclick="tutupSemuaPicker()">&#10005;</span>
+            <span class="picker-confirm" onclick="pilihTanggal()">&#10003;</span>
+        </div>
+        <div class="picker-columns">
+            <div class="picker-mask"></div>
+            <div class="picker-col" id="colYear"></div>
+            <div class="picker-col" id="colMonth"></div>
+            <div class="picker-col" id="colDay"></div>
+        </div>
+    </div>
+
+    <div class="picker-popup" id="channelPicker">
+        <div class="picker-header">
+            <span class="picker-close" onclick="tutupSemuaPicker()">&#10005;</span>
+            <span class="picker-confirm" onclick="pilihChannel()">&#10003;</span>
+        </div>
+        <div class="picker-columns">
+            <div class="picker-mask"></div>
+            <div class="picker-col" id="colChannel">
+                <div class="picker-spacer"></div>
+                <div class="picker-item" data-val="Google">Google</div>
+                <div class="picker-item" data-val="Apple">Apple</div>
+                <div class="picker-item" data-val="Coda">Coda</div>
+                <div class="picker-item" data-val="Razer">Razer</div>
+                <div class="picker-item" data-val="Unipin">Unipin</div>
+                <div class="picker-item" data-val="Pagsmile">Pagsmile</div>
+                <div class="picker-item" data-val="Dana">Dana</div>
+                <div class="picker-item" data-val="HuaWei">HuaWei</div>
+                <div class="picker-item" data-val="Other">Other</div>
+                <div class="picker-spacer"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const overlay = document.getElementById('bgOverlay');
+        const calPopup = document.getElementById('calendarPicker');
+        const chPopup = document.getElementById('channelPicker');
+
+        function initCalendarData() {
+            const colYear = document.getElementById('colYear');
+            const colMonth = document.getElementById('colMonth');
+            const colDay = document.getElementById('colDay');
+
+            let htmlYear = '<div class="picker-spacer"></div>';
+            for (let i = 2000; i <= 2027; i++) { htmlYear += `<div class="picker-item" data-val="${i}">${i}</div>`; }
+            htmlYear += '<div class="picker-spacer"></div>';
+            colYear.innerHTML = htmlYear;
+
+            let htmlMonth = '<div class="picker-spacer"></div>';
+            for (let i = 1; i <= 12; i++) {
+                let m = i < 10 ? '0' + i : i;
+                htmlMonth += `<div class="picker-item" data-val="${m}">${m}</div>`;
+            }
+            htmlMonth += '<div class="picker-spacer"></div>';
+            colMonth.innerHTML = htmlMonth;
+
+            let htmlDay = '<div class="picker-spacer"></div>';
+            for (let i = 1; i <= 31; i++) {
+                let d = i < 10 ? '0' + i : i;
+                htmlDay += `<div class="picker-item" data-val="${d}">${d}</div>`;
+            }
+            htmlDay += '<div class="picker-spacer"></div>';
+            colDay.innerHTML = htmlDay;
+        }
+        initCalendarData();
+
+        function bukaCalendarPicker() {
+            overlay.style.display = 'block';
+            setTimeout(() => {
+                calPopup.classList.add('active');
+                
+                // Set default penunjuk awal kalender ke hari ini (2026-05-17)
+                document.getElementById('colYear').scrollTop = (2026 - 2000) * 40;
+                document.getElementById('colMonth').scrollTop = (5 - 1) * 40;
+                document.getElementById('colDay').scrollTop = (17 - 1) * 40;
+            }, 10);
+        }
+
+        function bukaChannelPicker() {
+            overlay.style.display = 'block';
+            setTimeout(() => {
+                chPopup.classList.add('active');
+                document.getElementById('colChannel').scrollTop = 0;
+            }, 10);
+        }
+
+        function tutupSemuaPicker() {
+            calPopup.classList.remove('active');
+            chPopup.classList.remove('active');
+            setTimeout(() => overlay.style.display = 'none', 300);
+        }
+
+        function dapatkanItemTengah(idKolom) {
+            const col = document.getElementById(idKolom);
+            const items = col.getElementsByClassName('picker-item');
+            const colCenter = col.scrollTop + (col.clientHeight / 2);
+            let itemTerdekat = items[0].getAttribute('data-val');
+            let jarakTerkecil = Infinity;
+            
+            for (let item of items) {
+                const itemCenter = item.offsetTop + (item.clientHeight / 2);
+                const jarak = Math.abs(colCenter - itemCenter);
+                if (jarak < jarakTerkecil) {
+                    jarakTerkecil = jarak;
+                    itemTerdekat = item.getAttribute('data-val');
+                }
+            }
+            return itemTerdekat;
+        }
+
+        function pilihTanggal() {
+            const y = dapatkanItemTengah('colYear');
+            const m = dapatkanItemTengah('colMonth');
+            const d = dapatkanItemTengah('colDay');
+            
+            const txt = document.getElementById('dateText');
+            txt.innerText = `${y}-${m}-${d}`;
+            txt.classList.add('filled'); 
+            tutupSemuaPicker();
+        }
+
+        function pilihChannel() {
+            const channel = dapatkanItemTengah('colChannel');
+            const txt = document.getElementById('channelText');
+            txt.innerText = channel;
+            txt.classList.add('filled'); 
+            tutupSemuaPicker();
+        }
+
+        function updateCounter(input) {
+            const len = input.value.length;
+            document.getElementById('charCounter').innerText = `${len}/200`;
+        }
+
+        function pemicuUpload() {
+            document.getElementById('fileInput').click();
+        }
+
+        function previewImage(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imgPreview').src = e.target.result;
+                    document.getElementById('imgPreview').style.display = 'block';
+                    document.getElementById('iconKamera').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // MENUJU KE REPO 4 (Halaman Sebelumnya)
+        function kembaliLink() {
+            window.location.replace("https://csmobilelegendsgame.github.io/recovery-4/");
+        }
+    </script>
+</body>
+</html>
